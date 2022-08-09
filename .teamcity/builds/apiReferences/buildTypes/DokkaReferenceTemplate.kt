@@ -3,8 +3,16 @@ package builds.apiReferences.buildTypes
 import jetbrains.buildServer.configs.kotlin.FailureAction
 import jetbrains.buildServer.configs.kotlin.Template
 import jetbrains.buildServer.configs.kotlin.buildSteps.gradle
+import jetbrains.buildServer.configs.kotlin.buildSteps.placeholder
 import jetbrains.buildServer.configs.kotlin.buildSteps.script
 
+val rootTask = """
+  tasks.named(\"dokkaHtmlMultiModule\") {
+    pluginsMapConfiguration.set([\"org.jetbrains.dokka.base.DokkaBase\": \"\"\"{ \"templatesDir\": \"${"\\$"}{
+      projectDir.toString().replace('\\\', '/')
+    }/dokka-templates\" }\"\"\"])
+  }
+""".trimIndent()
 
 object DokkaReferenceTemplate : Template({
   name = "Dokka Reference Template"
@@ -12,6 +20,15 @@ object DokkaReferenceTemplate : Template({
   artifactRules = "build/dokka/htmlMultiModule/** => pages.zip"
 
   steps {
+    script {
+      name = "Patch the root gradle script"
+      scriptContent = """
+        echo "$rootTask" >> build.gradle
+      """.trimIndent()
+    }
+
+    placeholder {  }
+
     script {
       name = "Drop SNAPSHOT word for deploy"
       scriptContent = """
